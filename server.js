@@ -1,30 +1,36 @@
 const express = require("express");
 const http = require("http");
-const socketIo = require("socket.io");
+const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server);
 
-// 클라이언트가 연결할 때마다 실행
 io.on("connection", (socket) => {
-  console.log("a user connected");
+  console.log("A user connected:", socket.id);
 
-  // 메시지 받기
-  socket.on("disconnect", () => {
-    console.log("user disconnected");
+  // SDP Offer/Answer 전달
+  socket.on("offer", (data) => {
+    console.log("Offer received:", data);
+    socket.broadcast.emit("offer", data);
   });
 
-  // 메시지 보내기
-  socket.emit("message", "Hello from server!");
+  socket.on("answer", (data) => {
+    console.log("Answer received:", data);
+    socket.broadcast.emit("answer", data);
+  });
 
-  // 클라이언트로부터 메시지 받기
-  socket.on("chat message", (msg) => {
-    console.log("message: " + msg);
+  // ICE Candidate 전달
+  socket.on("ice-candidate", (candidate) => {
+    console.log("ICE Candidate received:", candidate);
+    socket.broadcast.emit("ice-candidate", candidate);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
   });
 });
 
-// 서버가 실행될 포트 설정
 server.listen(process.env.PORT || 3000, () => {
-  console.log("Server is running on port " + (process.env.PORT || 3000));
+  console.log("Signal server is running on port 3000");
 });
